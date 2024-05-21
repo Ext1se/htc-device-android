@@ -218,24 +218,33 @@ public class USBHIDService extends AbstractUSBHIDService {
 	private void setupNotifications() { //called in onCreate()
 		NotificationManager mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 		NotificationCompat.Builder mNotificationBuilder = new NotificationCompat.Builder(this);
+
+		int pendingFlags = PendingIntent.FLAG_IMMUTABLE;
+		/*
+		if (Util.SDK_INT >= 23) {
+			pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+		} else {
+			pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+		}
+		 */
+
 		PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
 				new Intent(this, USBHIDTerminal.class)
 						.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP),
-				0);
+				pendingFlags);
 		PendingIntent pendingCloseIntent = PendingIntent.getActivity(this, 0,
 				new Intent(this, USBHIDTerminal.class)
 						.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)
 						.setAction(Consts.USB_HID_TERMINAL_CLOSE_ACTION),
-				0);
+				pendingFlags);
 		mNotificationBuilder
-				.setSmallIcon(R.drawable.ic_launcher)
+				//.setSmallIcon(R.drawable.ic_launcher)
 				.setCategory(NotificationCompat.CATEGORY_SERVICE)
 				.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 				.setContentTitle(getText(R.string.app_name))
 				.setWhen(System.currentTimeMillis())
 				.setContentIntent(pendingIntent)
-				.addAction(android.R.drawable.ic_menu_close_clear_cancel,
-						getString(R.string.action_exit), pendingCloseIntent)
+				.addAction(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.action_exit), pendingCloseIntent)
 				.setOngoing(true);
 		mNotificationBuilder
 				.setTicker(getText(R.string.app_name))

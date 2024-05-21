@@ -120,6 +120,8 @@ public class USBHIDTerminal extends Activity implements View.OnClickListener {
 	}
 
 	public void onClick(View v) {
+		Log.d("ASDSADSADSADSADASD", "PrepareDeviceList 22");
+
 		if (v == btnSend) {
 			eventBus.post(new USBDataSendEvent(edtxtHidInput.getText().toString()));
 		} else if (v == rbSendText || v == rbSendDataType) {

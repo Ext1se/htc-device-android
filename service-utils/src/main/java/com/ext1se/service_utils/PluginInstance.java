@@ -26,7 +26,7 @@ public class PluginInstance {
     private static Activity unityActivity;
 
     private Intent usbService;
-    //private EventBus eventBus;
+    private EventBus eventBus;
 
     public PluginInstance() {
     }
@@ -40,22 +40,18 @@ public class PluginInstance {
 
         try {
             Log.d(TAG, "Init Services: 1");
-
-            //eventBus = EventBus.builder().logNoSubscriberMessages(false).sendNoSubscriberEvent(false).installDefaultEventBus();
+            eventBus = EventBus.builder().logNoSubscriberMessages(false).sendNoSubscriberEvent(false).installDefaultEventBus();
         } catch (EventBusException e) {
             Log.d(TAG, "Init Services: 2");
-
-            //eventBus = EventBus.getDefault();
+            eventBus = EventBus.getDefault();
         }
 
-        /*
         if (eventBus != null) {
             Log.d(TAG, "Event Bus is not NULL");
-            //eventBus.register(this);
+            eventBus.register(this);
         } else {
             Log.d(TAG, "Event Bus is NULL");
         }
-         */
 
         startUsbService();
     }
@@ -79,9 +75,11 @@ public class PluginInstance {
     }
 
     public void PrepareDeviceList() {
-        //if (eventBus != null) {
-         //   eventBus.post(new PrepareDevicesListEvent());
-        //}
+        Log.d(TAG, "PrepareDeviceList 1");
+        if (eventBus != null) {
+            Log.d(TAG, "PrepareDeviceList 2");
+            eventBus.post(new PrepareDevicesListEvent());
+        }
     }
 
     void showListOfDevices(CharSequence nameDevices[]) {
@@ -96,9 +94,9 @@ public class PluginInstance {
         builder.setItems(nameDevices, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-              //  if (eventBus != null) {
-              //      eventBus.post(new SelectDeviceEvent(which));
-              //  }
+                if (eventBus != null) {
+                    eventBus.post(new SelectDeviceEvent(which));
+                }
             }
         });
 

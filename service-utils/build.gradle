@@ -14,7 +14,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            shrinkResources false
+            minifyEnabled false
+            //proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
         release {
+            shrinkResources false
             minifyEnabled false
             //proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -25,6 +32,19 @@ android {
     }
 }
 
+//TODO
+/*
+jar {
+    manifest {
+        attributes "Main-Class": "$mainClassName"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+*/
+
 dependencies {
 
     implementation libs.androidx.appcompat
@@ -33,5 +53,19 @@ dependencies {
     implementation libs.androidx.legacy.support.v4
     implementation libs.nanohttpd
     implementation libs.nanohttpd.websocket
+
     implementation libs.eventbus
 }
+
+task deleteJar(type: Delete) {
+    //delete 'libs/jars/logmanagementlib.jar'
+}
+
+task createJar(type: Copy) {
+    from('build/intermediates/bundles/release/')
+    into('libs/jars/')
+    include('classes.jar')
+    rename('classes.jar', 'logmanagementlib.jar')
+}
+
+createJar.dependsOn(deleteJar, build)

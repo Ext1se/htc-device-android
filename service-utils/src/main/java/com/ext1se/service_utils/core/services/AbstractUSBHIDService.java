@@ -62,7 +62,21 @@ public abstract class AbstractUSBHIDService extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(Consts.ACTION_USB_PERMISSION), 0);
+		Log.d(TAG, "onCreate: " + 1);
+
+		int pendingFlags = PendingIntent.FLAG_IMMUTABLE;
+		/*
+		if (Util.SDK_INT >= 23) {
+			pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+		} else {
+			pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+		}
+		 */
+
+		mPermissionIntent = PendingIntent.getBroadcast(this,
+				0,
+				new Intent(Consts.ACTION_USB_PERMISSION),
+				pendingFlags);
 		filter = new IntentFilter(Consts.ACTION_USB_PERMISSION);
 		filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
 		filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
@@ -70,10 +84,14 @@ public abstract class AbstractUSBHIDService extends Service {
 		filter.addAction(Consts.ACTION_USB_DATA_TYPE);
 		registerReceiver(mUsbReceiver, filter);
 		eventBus.register(this);
+
+		Log.d(TAG, "onCreate: " + 2);
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
+		Log.d(TAG, "onStartCommand: " + startId);
+
 		String action = intent.getAction();
 		if (Consts.ACTION_USB_DATA_TYPE.equals(action)) {
 			sendedDataType = intent.getBooleanExtra(Consts.ACTION_USB_DATA_TYPE, false);
@@ -84,6 +102,8 @@ public abstract class AbstractUSBHIDService extends Service {
 
 	@Override
 	public void onDestroy() {
+		Log.d(TAG, "onDestroy 1");
+
 		eventBus.unregister(this);
 		super.onDestroy();
 		if (usbThreadDataReceiver != null) {
@@ -153,6 +173,8 @@ public abstract class AbstractUSBHIDService extends Service {
 	}
 
     public void onEventMainThread(PrepareDevicesListEvent event) {
+		Log.d(TAG, "PrepareDeviceList 3");
+
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         List<CharSequence> list = new LinkedList<CharSequence>();
         for (UsbDevice usbDevice : mUsbManager.getDeviceList().values()) {
@@ -160,6 +182,9 @@ public abstract class AbstractUSBHIDService extends Service {
         }
         final CharSequence devicesName[] = new CharSequence[mUsbManager.getDeviceList().size()];
         list.toArray(devicesName);
+
+		Log.d(TAG, "PrepareDeviceList 3 size = " + devicesName.length);
+
 		onShowDevicesList(devicesName);
     }
 
