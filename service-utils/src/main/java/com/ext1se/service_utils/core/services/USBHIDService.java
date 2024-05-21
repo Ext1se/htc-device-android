@@ -238,7 +238,7 @@ public class USBHIDService extends AbstractUSBHIDService {
 						.setAction(Consts.USB_HID_TERMINAL_CLOSE_ACTION),
 				pendingFlags);
 		mNotificationBuilder
-				//.setSmallIcon(R.drawable.ic_launcher)
+				.setSmallIcon(R.drawable.ic_launcher)
 				.setCategory(NotificationCompat.CATEGORY_SERVICE)
 				.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 				.setContentTitle(getText(R.string.app_name))

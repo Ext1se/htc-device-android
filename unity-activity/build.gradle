@@ -1,0 +1,47 @@
+plugins {
+    alias(libs.plugins.androidLibrary)
+}
+
+android {
+    namespace 'com.ext1se.unity_activity'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 25
+
+        //testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        //consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        debug {
+            shrinkResources false
+            minifyEnabled false
+            //proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            shrinkResources false
+            minifyEnabled false
+            //proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    //implementation project(':service-utils')
+    //implementation fileTree(dir: "libs", include: ["*.jar"])
+    compileOnly files('libs\\classes.jar')
+
+    implementation libs.androidx.appcompat
+    implementation libs.material
+
+    implementation libs.androidx.legacy.support.v4
+    implementation libs.nanohttpd
+    implementation libs.nanohttpd.websocket
+
+    implementation libs.eventbus
+}
