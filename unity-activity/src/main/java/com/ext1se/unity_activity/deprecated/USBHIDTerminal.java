@@ -1,4 +1,4 @@
-package com.ext1se.unity_activity;
+package com.ext1se.unity_activity.deprecated;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -18,6 +18,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 
+import com.ext1se.unity_activity.R;
 import com.ext1se.unity_activity.core.Consts;
 import com.ext1se.unity_activity.core.events.DeviceAttachedEvent;
 import com.ext1se.unity_activity.core.events.DeviceDetachedEvent;
@@ -27,9 +28,9 @@ import com.ext1se.unity_activity.core.events.SelectDeviceEvent;
 import com.ext1se.unity_activity.core.events.ShowDevicesListEvent;
 import com.ext1se.unity_activity.core.events.USBDataReceiveEvent;
 import com.ext1se.unity_activity.core.events.USBDataSendEvent;
-import com.ext1se.unity_activity.core.services.SocketService;
+import com.ext1se.unity_activity.deprecated.services.SocketService;
 import com.ext1se.unity_activity.core.services.USBHIDService;
-import com.ext1se.unity_activity.core.services.WebServerService;
+import com.ext1se.unity_activity.deprecated.services.WebServerService;
 
 import de.greenrobot.event.EventBus;
 import de.greenrobot.event.EventBusException;

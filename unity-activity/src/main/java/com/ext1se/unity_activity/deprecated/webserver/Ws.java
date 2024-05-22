@@ -1,4 +1,4 @@
-package com.ext1se.unity_activity.core.webserver;
+package com.ext1se.unity_activity.deprecated.webserver;
 
 import android.util.Log;
 

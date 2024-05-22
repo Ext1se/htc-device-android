@@ -1,6 +1,7 @@
 package com.ext1se.unity_activity.core;
 
 public abstract class Consts {
+	public static final String APP_TAG = "UnityServices";
 	public static final String BINARY = "binary";
 	public static final String INTEGER = "integer";
 	public static final String HEXADECIMAL = "hexadecimal";

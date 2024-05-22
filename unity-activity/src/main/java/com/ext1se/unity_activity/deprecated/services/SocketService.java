@@ -1,4 +1,4 @@
-package com.ext1se.unity_activity.core.services;
+package com.ext1se.unity_activity.deprecated.services;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -12,7 +12,7 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
 import com.ext1se.unity_activity.R;
-import com.ext1se.unity_activity.USBHIDTerminal;
+import com.ext1se.unity_activity.deprecated.USBHIDTerminal;
 import com.ext1se.unity_activity.core.Consts;
 import com.ext1se.unity_activity.core.USBUtils;
 import com.ext1se.unity_activity.core.events.LogMessageEvent;

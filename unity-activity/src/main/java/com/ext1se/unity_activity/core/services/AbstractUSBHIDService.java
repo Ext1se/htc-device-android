@@ -30,156 +30,157 @@ import de.greenrobot.event.EventBus;
 
 public abstract class AbstractUSBHIDService extends Service {
 
-	private static final String TAG = AbstractUSBHIDService.class.getCanonicalName();
+    protected static final String TAG = AbstractUSBHIDService.class.getCanonicalName();
 
-	public static final int REQUEST_GET_REPORT = 0x01;
-	public static final int REQUEST_SET_REPORT = 0x09;
-	public static final int REPORT_TYPE_INPUT = 0x0100;
-	public static final int REPORT_TYPE_OUTPUT = 0x0200;
-	public static final int REPORT_TYPE_FEATURE = 0x0300;
+    public static final int REQUEST_GET_REPORT = 0x01;
+    public static final int REQUEST_SET_REPORT = 0x09;
+    public static final int REPORT_TYPE_INPUT = 0x0100;
+    public static final int REPORT_TYPE_OUTPUT = 0x0200;
+    public static final int REPORT_TYPE_FEATURE = 0x0300;
 
-	private USBThreadDataReceiver usbThreadDataReceiver;
+    private USBThreadDataReceiver usbThreadDataReceiver;
 
-	private final Handler uiHandler = new Handler();
+    private final Handler uiHandler = new Handler();
 
-	private List<UsbInterface> interfacesList = null;
+    private List<UsbInterface> interfacesList = null;
 
-	private UsbManager mUsbManager;
-	private UsbDeviceConnection connection;
-	private UsbDevice device;
+    private UsbManager mUsbManager;
+    private UsbDeviceConnection connection;
+    private UsbDevice device;
 
-	private IntentFilter filter;
-	private PendingIntent mPermissionIntent;
+    private IntentFilter filter;
+    private PendingIntent mPermissionIntent;
 
-	private boolean sendedDataType;
+    private boolean sendedDataType;
 
-	protected EventBus eventBus = EventBus.getDefault();
+    protected EventBus eventBus = EventBus.getDefault();
 
-	@Override
-	public IBinder onBind(Intent intent) {
-		return null;
-	}
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
-	@Override
-	public void onCreate() {
-		super.onCreate();
-		Log.d(TAG, "onCreate: " + 1);
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.d(TAG, "Service onCreate: start");
 
-		int pendingFlags = PendingIntent.FLAG_MUTABLE; //TODO
-		/*
-		if (Util.SDK_INT >= 23) {
-			pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
-		} else {
-			pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
-		}
-		 */
+        int pendingFlags = PendingIntent.FLAG_MUTABLE;
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+            //pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+            pendingFlags = PendingIntent.FLAG_MUTABLE;
+        } else {
+            pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        }
 
-		mPermissionIntent = PendingIntent.getBroadcast(this,
-		//mPermissionIntent = PendingIntent.getBroadcast(UnityPlayer.currentActivity,
-				0,
-				new Intent(Consts.ACTION_USB_PERMISSION),
-				pendingFlags);
-		filter = new IntentFilter(Consts.ACTION_USB_PERMISSION);
-		filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-		filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-		filter.addAction(Consts.ACTION_USB_SHOW_DEVICES_LIST);
-		filter.addAction(Consts.ACTION_USB_DATA_TYPE);
-		registerReceiver(mUsbReceiver, filter);
-		eventBus.register(this);
+        mPermissionIntent = PendingIntent.getBroadcast(this,
+                0,
+                new Intent(Consts.ACTION_USB_PERMISSION),
+                pendingFlags);
 
-		Log.d(TAG, "onCreate: " + 2);
-	}
+        filter = new IntentFilter(Consts.ACTION_USB_PERMISSION);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(Consts.ACTION_USB_SHOW_DEVICES_LIST);
+        filter.addAction(Consts.ACTION_USB_DATA_TYPE);
 
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		Log.d(TAG, "onStartCommand: " + startId);
+        registerReceiver(mUsbReceiver, filter);
+        eventBus.register(this);
 
-		String action = intent.getAction();
-		if (Consts.ACTION_USB_DATA_TYPE.equals(action)) {
-			sendedDataType = intent.getBooleanExtra(Consts.ACTION_USB_DATA_TYPE, false);
-		}
-		onCommand(intent, action, flags, startId);
-		return START_REDELIVER_INTENT;
-	}
+        Log.d(TAG, "Service onCreate: complete");
+    }
 
-	@Override
-	public void onDestroy() {
-		Log.d(TAG, "onDestroy 1");
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand: " + startId);
 
-		eventBus.unregister(this);
-		super.onDestroy();
-		if (usbThreadDataReceiver != null) {
-			usbThreadDataReceiver.stopThis();
-		}
-		unregisterReceiver(mUsbReceiver);
-	}
+        String action = intent.getAction();
+        if (Consts.ACTION_USB_DATA_TYPE.equals(action)) {
+            sendedDataType = intent.getBooleanExtra(Consts.ACTION_USB_DATA_TYPE, false);
+        }
+        onCommand(intent, action, flags, startId);
 
-	private class USBThreadDataReceiver extends Thread {
+        return START_REDELIVER_INTENT;
+    }
 
-		private volatile boolean isStopped;
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "Service onDestroy");
 
-		public USBThreadDataReceiver() {
-		}
+        eventBus.unregister(this);
+        super.onDestroy();
+        if (usbThreadDataReceiver != null) {
+            usbThreadDataReceiver.stopThis();
+        }
+        unregisterReceiver(mUsbReceiver);
+    }
 
-		@Override
-		public void run() {
-			try {
-				if (connection != null) {
-					while (!isStopped) {
-						for (UsbInterface intf: interfacesList) {
-							for (int i = 0; i < intf.getEndpointCount(); i++) {
-								UsbEndpoint endPointRead = intf.getEndpoint(i);
-								if (UsbConstants.USB_DIR_IN == endPointRead.getDirection()) {
-									final byte[] buffer = new byte[endPointRead.getMaxPacketSize()];
-									final int status = connection.bulkTransfer(endPointRead, buffer, buffer.length, 100);
-									if (status > 0) {
-										uiHandler.post(new Runnable() {
-											@Override
-											public void run() {
-												onUSBDataReceive(buffer);
-											}
-										});
-									} else {
-										int transfer = connection.controlTransfer(0xA0, REQUEST_GET_REPORT, REPORT_TYPE_OUTPUT, 0x00, buffer, buffer.length, 100);
-										if (transfer > 0) {
-											uiHandler.post(new Runnable() {
-												@Override
-												public void run() {
-													onUSBDataReceive(buffer);
-												}
-											});
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			} catch (Exception e) {
-				Log.e(TAG, "Error in receive thread", e);
-			}
-		}
+    private class USBThreadDataReceiver extends Thread {
 
-		public void stopThis() {
-			isStopped = true;
-		}
-	}
+        private volatile boolean isStopped;
 
-	public void onEventMainThread(USBDataSendEvent event){
-		sendData(event.getData(), sendedDataType);
-	}
+        public USBThreadDataReceiver() {
+        }
 
-	public void onEvent(SelectDeviceEvent event) {
-		Log.d(TAG, "SelectDeviceEvent 1");
+        @Override
+        public void run() {
+            try {
+                if (connection != null) {
+                    while (!isStopped) {
+                        for (UsbInterface intf : interfacesList) {
+                            for (int i = 0; i < intf.getEndpointCount(); i++) {
+                                UsbEndpoint endPointRead = intf.getEndpoint(i);
+                                if (UsbConstants.USB_DIR_IN == endPointRead.getDirection()) {
+                                    final byte[] buffer = new byte[endPointRead.getMaxPacketSize()];
+                                    final int status = connection.bulkTransfer(endPointRead, buffer, buffer.length, 100);
+                                    if (status > 0) {
+                                        uiHandler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                onUSBDataReceive(buffer);
+                                            }
+                                        });
+                                    } else {
+                                        int transfer = connection.controlTransfer(0xA0, REQUEST_GET_REPORT, REPORT_TYPE_OUTPUT, 0x00, buffer, buffer.length, 100);
+                                        if (transfer > 0) {
+                                            uiHandler.post(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    onUSBDataReceive(buffer);
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error in receive thread", e);
+            }
+        }
 
-		device = (UsbDevice) mUsbManager.getDeviceList().values().toArray()[event.getDevice()];
-		mUsbManager.requestPermission(device, mPermissionIntent);
+        public void stopThis() {
+            isStopped = true;
+        }
+    }
 
-		Log.d(TAG, "SelectDeviceEvent 2");
-	}
+    public void onEventMainThread(USBDataSendEvent event) {
+        sendData(event.getData(), sendedDataType);
+    }
+
+    public void onEvent(SelectDeviceEvent event) {
+        Log.d(TAG, "SelectDeviceEvent 1");
+
+        device = (UsbDevice) mUsbManager.getDeviceList().values().toArray()[event.getDevice()];
+        mUsbManager.requestPermission(device, mPermissionIntent);
+
+        Log.d(TAG, "SelectDeviceEvent 2");
+    }
 
     public void onEventMainThread(PrepareDevicesListEvent event) {
-		Log.d(TAG, "PrepareDeviceList 3");
+        Log.d(TAG, "PrepareDeviceList 3");
 
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         List<CharSequence> list = new LinkedList<CharSequence>();
@@ -189,157 +190,157 @@ public abstract class AbstractUSBHIDService extends Service {
         final CharSequence devicesName[] = new CharSequence[mUsbManager.getDeviceList().size()];
         list.toArray(devicesName);
 
-		Log.d(TAG, "PrepareDeviceList 3 size = " + devicesName.length);
+        Log.d(TAG, "PrepareDeviceList 3 size = " + devicesName.length);
 
-		onShowDevicesList(devicesName);
+        onShowDevicesList(devicesName);
     }
 
-	private void sendData(String data, boolean sendAsString) {
-		Log.d(TAG, "sendData 1 " + data);
+    private void sendData(String data, boolean sendAsString) {
+        Log.d(TAG, "sendData 1 " + data);
 
-		if (device != null && mUsbManager.hasPermission(device) && !data.isEmpty()) {
-			// mLog(connection +"\n"+ device +"\n"+ request +"\n"+
-			// packetSize);
-			for (UsbInterface intf: interfacesList) {
-				for (int i = 0; i < intf.getEndpointCount(); i++) {
-					UsbEndpoint endPointWrite = intf.getEndpoint(i);
-					if (UsbConstants.USB_DIR_OUT == endPointWrite.getDirection()) {
-						byte[] out = data.getBytes();// UTF-16LE
-						// Charset.forName("UTF-16")
-						onUSBDataSending(data);
-						if (sendAsString) {
-							try {
-								String str[] = data.split("[\\s]");
-								out = new byte[str.length];
-								for (int s = 0; s < str.length; s++) {
-									out[s] = USBUtils.toByte(Integer.decode(str[s]));
-								}
-							} catch (Exception e) {
-								onSendingError(e);
-							}
-						}
-						int status = connection.bulkTransfer(endPointWrite, out, out.length, 250);
-						onUSBDataSended(status, out);
-						status = connection.controlTransfer(0x21, REQUEST_SET_REPORT, REPORT_TYPE_OUTPUT, 0x02, out, out.length, 250);
-						onUSBDataSended(status, out);
-					}
-				}
-			}
-		}
-	}
+        if (device != null && mUsbManager.hasPermission(device) && !data.isEmpty()) {
+            // mLog(connection +"\n"+ device +"\n"+ request +"\n"+
+            // packetSize);
+            for (UsbInterface intf : interfacesList) {
+                for (int i = 0; i < intf.getEndpointCount(); i++) {
+                    UsbEndpoint endPointWrite = intf.getEndpoint(i);
+                    if (UsbConstants.USB_DIR_OUT == endPointWrite.getDirection()) {
+                        byte[] out = data.getBytes();// UTF-16LE
+                        // Charset.forName("UTF-16")
+                        onUSBDataSending(data);
+                        if (sendAsString) {
+                            try {
+                                String str[] = data.split("[\\s]");
+                                out = new byte[str.length];
+                                for (int s = 0; s < str.length; s++) {
+                                    out[s] = USBUtils.toByte(Integer.decode(str[s]));
+                                }
+                            } catch (Exception e) {
+                                onSendingError(e);
+                            }
+                        }
+                        int status = connection.bulkTransfer(endPointWrite, out, out.length, 250);
+                        onUSBDataSended(status, out);
+                        status = connection.controlTransfer(0x21, REQUEST_SET_REPORT, REPORT_TYPE_OUTPUT, 0x02, out, out.length, 250);
+                        onUSBDataSended(status, out);
+                    }
+                }
+            }
+        }
+    }
 
-	/**
-	 * receives the permission request to connect usb devices
-	 */
-	private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-		public void onReceive(Context context, Intent intent) {
+    /**
+     * receives the permission request to connect usb devices
+     */
+    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
 
-			Log.d(TAG, "BroadcastReceiver");
+            Log.d(TAG, "BroadcastReceiver");
 
-			String action = intent.getAction();
-			if (Consts.ACTION_USB_PERMISSION.equals(action)) {
-				Log.d(TAG, "BroadcastReceiver setDevice 1");
+            String action = intent.getAction();
+            if (Consts.ACTION_USB_PERMISSION.equals(action)) {
+                Log.d(TAG, "BroadcastReceiver setDevice 1");
 
-				setDevice(intent);
-			}
-			if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-				Log.d(TAG, "BroadcastReceiver attach 2");
+                setDevice(intent);
+            }
+            if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                Log.d(TAG, "BroadcastReceiver attach 2");
 
-				setDevice(intent);
-				if (device != null) {
-					Log.d(TAG, "BroadcastReceiver attach 3");
+                setDevice(intent);
+                if (device != null) {
+                    Log.d(TAG, "BroadcastReceiver attach 3");
 
-					onDeviceConnected(device);
+                    onDeviceConnected(device);
 
-					Log.d(TAG, "BroadcastReceiver attach 4");
+                    Log.d(TAG, "BroadcastReceiver attach 4");
 
-				}
-			}
-			if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                }
+            }
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
 
-				Log.d(TAG, "BroadcastReceiver detach 4");
-
-
-				if (device != null) {
-					Log.d(TAG, "BroadcastReceiver detach 5");
-
-					device = null;
-					if (usbThreadDataReceiver != null) {
-						usbThreadDataReceiver.stopThis();
-					}
-					onDeviceDisconnected(device);
-				}
-
-				Log.d(TAG, "BroadcastReceiver detach 6");
-
-			}
-		}
-
-		private void setDevice(Intent intent) {
-			Log.d(TAG, "BroadcastReceiver setDevice 10");
-			device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-			if (device != null && intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, true)) {
-				Log.d(TAG, "BroadcastReceiver setDevice 11");
+                Log.d(TAG, "BroadcastReceiver detach 4");
 
 
-				onDeviceSelected(device);
-				connection = mUsbManager.openDevice(device);
-				if (connection == null) {
-					Log.d(TAG, "BroadcastReceiver setDevice 12 null");
+                if (device != null) {
+                    Log.d(TAG, "BroadcastReceiver detach 5");
 
-					return;
-				}
-				interfacesList = new LinkedList();
-				for(int i = 0; i < device.getInterfaceCount(); i++) {
-					UsbInterface intf = device.getInterface(i);
-					connection.claimInterface(intf, true);
-					interfacesList.add(intf);
-				}
-				usbThreadDataReceiver = new USBThreadDataReceiver();
-				usbThreadDataReceiver.start();
-				onDeviceAttached(device);
-				Log.d(TAG, "BroadcastReceiver setDevice 14");
+                    device = null;
+                    if (usbThreadDataReceiver != null) {
+                        usbThreadDataReceiver.stopThis();
+                    }
+                    onDeviceDisconnected(device);
+                }
 
-			}else{
-				Log.d(TAG, "BroadcastReceiver setDevice NULL " + device);
-			}
+                Log.d(TAG, "BroadcastReceiver detach 6");
 
-			Log.d(TAG, "BroadcastReceiver setDevice 20");
-		}
-	};
+            }
+        }
 
-	public void onCommand(Intent intent, String action, int flags, int startId) {
-	}
+        private void setDevice(Intent intent) {
+            Log.d(TAG, "BroadcastReceiver setDevice 10");
+            device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            if (device != null && intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, true)) {
+                Log.d(TAG, "BroadcastReceiver setDevice 11");
 
-	public void onUSBDataReceive(byte[] buffer) {
-	}
 
-	public void onDeviceConnected(UsbDevice device) {
-	}
+                onDeviceSelected(device);
+                connection = mUsbManager.openDevice(device);
+                if (connection == null) {
+                    Log.d(TAG, "BroadcastReceiver setDevice 12 null");
 
-	public void onDeviceDisconnected(UsbDevice device) {
-	}
+                    return;
+                }
+                interfacesList = new LinkedList();
+                for (int i = 0; i < device.getInterfaceCount(); i++) {
+                    UsbInterface intf = device.getInterface(i);
+                    connection.claimInterface(intf, true);
+                    interfacesList.add(intf);
+                }
+                usbThreadDataReceiver = new USBThreadDataReceiver();
+                usbThreadDataReceiver.start();
+                onDeviceAttached(device);
+                Log.d(TAG, "BroadcastReceiver setDevice 14");
 
-	public void onDeviceSelected(UsbDevice device) {
-	}
+            } else {
+                Log.d(TAG, "BroadcastReceiver setDevice NULL " + device);
+            }
 
-	public void onDeviceAttached(UsbDevice device) {
-	}
+            Log.d(TAG, "BroadcastReceiver setDevice 20");
+        }
+    };
 
-	public void onShowDevicesList(CharSequence[] deviceName) {
-	}
+    public void onCommand(Intent intent, String action, int flags, int startId) {
+    }
 
-	public CharSequence onBuildingDevicesList(UsbDevice usbDevice) {
-		return null;
-	}
+    public void onUSBDataReceive(byte[] buffer) {
+    }
 
-	public void onUSBDataSending(String data) {
-	}
+    public void onDeviceConnected(UsbDevice device) {
+    }
 
-	public void onUSBDataSended(int status, byte[] out) {
-	}
+    public void onDeviceDisconnected(UsbDevice device) {
+    }
 
-	public void onSendingError(Exception e) {
-	}
+    public void onDeviceSelected(UsbDevice device) {
+    }
+
+    public void onDeviceAttached(UsbDevice device) {
+    }
+
+    public void onShowDevicesList(CharSequence[] deviceName) {
+    }
+
+    public CharSequence onBuildingDevicesList(UsbDevice usbDevice) {
+        return null;
+    }
+
+    public void onUSBDataSending(String data) {
+    }
+
+    public void onUSBDataSended(int status, byte[] out) {
+    }
+
+    public void onSendingError(Exception e) {
+    }
 
 }

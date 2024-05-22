@@ -1,4 +1,4 @@
-package com.ext1se.unity_activity;
+package com.ext1se.unity_activity.unity;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -16,7 +16,7 @@ import com.unity3d.player.IUnityPlayerLifecycleEvents;
 import com.unity3d.player.MultiWindowSupport;
 import com.unity3d.player.UnityPlayer;
 
-public class  UnityPlayerActivity extends Activity implements IUnityPlayerLifecycleEvents
+public class UnityPlayerActivity extends Activity implements IUnityPlayerLifecycleEvents
 {
     protected UnityPlayer mUnityPlayer; // don't change the name of this variable; referenced from native code
 

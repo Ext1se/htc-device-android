@@ -14,7 +14,9 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 
 import com.ext1se.unity_activity.R;
-import com.ext1se.unity_activity.USBHIDTerminal;
+import com.ext1se.unity_activity.core.events.ServiceDestroyEvent;
+import com.ext1se.unity_activity.core.events.ServiceStartEvent;
+import com.ext1se.unity_activity.deprecated.USBHIDTerminal;
 import com.ext1se.unity_activity.core.Consts;
 import com.ext1se.unity_activity.core.USBUtils;
 import com.ext1se.unity_activity.core.events.DeviceAttachedEvent;
@@ -32,6 +34,10 @@ public class USBHIDService extends AbstractUSBHIDService {
     public void onCreate() {
         super.onCreate();
         setupNotifications();
+
+        if (eventBus != null){
+            eventBus.post(new ServiceStartEvent());
+        }
     }
 
     @Override
@@ -45,6 +51,10 @@ public class USBHIDService extends AbstractUSBHIDService {
 
     @Override
     public void onDestroy() {
+        if (eventBus != null){
+            eventBus.post(new ServiceDestroyEvent());
+        }
+
         super.onDestroy();
     }
 
@@ -188,10 +198,11 @@ public class USBHIDService extends AbstractUSBHIDService {
 
     @Override
     public void onUSBDataReceive(byte[] buffer) {
-        Log.d("USB_DataReceive", "buffer.length: " + buffer.length); //!!!!!!!!!!!!!!!!!!!!!!!!!
+        Log.d(TAG, "onUSBDataReceive buffer.length: " + buffer.length);
 
+        // TODO: init format from main Activity
         if (receiveDataFormat == null){
-            Log.d("USB_DataReceive", "receiveDataFormat = null" );
+            Log.d(TAG, "receiveDataFormat = null" );
             receiveDataFormat = Consts.TEXT;
         }
 
@@ -214,7 +225,7 @@ public class USBHIDService extends AbstractUSBHIDService {
                 stringBuilder.append(delimiter).append("0b").append(Integer.toBinaryString(Integer.valueOf(buffer[i])));
             }
         }
-        //eventBus.post(new USBDataReceiveEvent(stringBuilder.toString(), i));
+
         eventBus.post(new USBDataReceiveEvent(
                 stringBuilder.toString(),
                 buffer,
@@ -227,13 +238,14 @@ public class USBHIDService extends AbstractUSBHIDService {
 
     private void setupNotifications() { //called in onCreate()
 
-        Log.d("USBHIDService", "sadsadasdasdasdsadsssssssssssssssssssssssssssssssssssssssssssssssss");
+        Log.d(TAG, "setupNotifications start" );
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         NotificationCompat.Builder mNotificationBuilder = new NotificationCompat.Builder(this);
 
         NotificationChannel mChannel = null;
 
+        // TODO
         String idChannel = "usb_channel";
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             mChannel = new NotificationChannel(idChannel, "USB Service", NotificationManager.IMPORTANCE_LOW);
@@ -243,6 +255,7 @@ public class USBHIDService extends AbstractUSBHIDService {
             mNotificationManager.createNotificationChannel(mChannel);
         }
 
+        //
         int pendingFlags = PendingIntent.FLAG_MUTABLE;
         if (android.os.Build.VERSION.SDK_INT >= 23) {
             //pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
@@ -281,7 +294,7 @@ public class USBHIDService extends AbstractUSBHIDService {
             mNotificationManager.notify(Consts.USB_HID_TERMINAL_NOTIFICATION, mNotificationBuilder.build());
         }
 
-        Log.d("USBHIDService", "2 ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss");
+        Log.d(TAG, "setupNotifications complete" );
     }
 
 }

@@ -1,4 +1,4 @@
-package com.ext1se.unity_activity;
+package com.ext1se.unity_activity.deprecated;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -10,6 +10,8 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+
+import com.ext1se.unity_activity.R;
 
 import java.util.List;
 

@@ -1,5 +1,7 @@
 package com.ext1se.unity_activity;
 
+import static com.ext1se.unity_activity.core.Consts.APP_TAG;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -14,9 +16,12 @@ import com.ext1se.unity_activity.core.events.DeviceDetachedEvent;
 import com.ext1se.unity_activity.core.events.LogMessageEvent;
 import com.ext1se.unity_activity.core.events.PrepareDevicesListEvent;
 import com.ext1se.unity_activity.core.events.SelectDeviceEvent;
+import com.ext1se.unity_activity.core.events.ServiceDestroyEvent;
+import com.ext1se.unity_activity.core.events.ServiceStartEvent;
 import com.ext1se.unity_activity.core.events.ShowDevicesListEvent;
 import com.ext1se.unity_activity.core.events.USBDataReceiveEvent;
 import com.ext1se.unity_activity.core.services.USBHIDService;
+import com.ext1se.unity_activity.unity.UnityPlayerActivity;
 import com.unity3d.player.UnityPlayer;
 
 import de.greenrobot.event.EventBus;
@@ -24,51 +29,36 @@ import de.greenrobot.event.EventBusException;
 
 public class PluginActivity extends UnityPlayerActivity {
 
-    public static String TAG = "UnityServices";
+    /// Fields ///
 
-    private static Activity currentActivity1;
+    private static Activity currentUnityActivity;
+
     private Intent usbService;
     private EventBus eventBus;
+
+    /// Fields ///
+
+    /// Android Events ///
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        currentActivity1 = UnityPlayer.currentActivity;
-        
-        Toast.makeText(currentActivity1, "Called from PluginActivity", Toast.LENGTH_LONG).show();
+        currentUnityActivity = UnityPlayer.currentActivity;
+
+        ShowMessage("Called from Native Android");
     }
 
-    public void initAndroidServices(String message) {
-        Log.d(TAG, "Init Services: " + message);
+    /// Android Events ///
 
-        try {
-            Log.d(TAG, "Init Services: 1");
-            eventBus = EventBus.builder().logNoSubscriberMessages(false).sendNoSubscriberEvent(false).installDefaultEventBus();
-        } catch (EventBusException e) {
-            Log.d(TAG, "Init Services: 2");
-            eventBus = EventBus.getDefault();
-        }
-
-        if (eventBus != null) {
-            Log.d(TAG, "Event Bus is not NULL");
-            eventBus.register(this);
-        } else {
-            Log.d(TAG, "Event Bus is NULL");
-        }
-
-        startUsbService();
-    }
+    /// private ///
 
     private void startUsbService() {
-        Log.d(TAG, "startUsbService 1");
-        usbService = new Intent(currentActivity1, USBHIDService.class);
-        Log.d(TAG, "startUsbService 2");
-        currentActivity1.startService(usbService);
-        Log.d(TAG, "startUsbService 3");
+        usbService = new Intent(currentUnityActivity, USBHIDService.class);
+        currentUnityActivity.startService(usbService);
     }
 
     private void showListOfDevices(CharSequence nameDevices[]) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(currentActivity1);
+        AlertDialog.Builder builder = new AlertDialog.Builder(currentUnityActivity);
 
         if (nameDevices.length == 0) {
             builder.setTitle(Consts.MESSAGE_CONNECT_YOUR_USB_HID_DEVICE);
@@ -80,7 +70,7 @@ public class PluginActivity extends UnityPlayerActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (eventBus != null) {
-                    ShowMessage("Item is selected");
+                    ShowMessage("Item is selected: " + which);
                     eventBus.post(new SelectDeviceEvent(which));
                 }
             }
@@ -90,60 +80,92 @@ public class PluginActivity extends UnityPlayerActivity {
         builder.show();
     }
 
-    public void SendDataToUnity(USBDataReceiveEvent event){
+    /// private ///
+
+
+    /// public ///
+
+    public void initAndroidServices(String message) {
+        Log.d(APP_TAG, "Init Android Services: " + message);
+
+        try {
+            eventBus = EventBus.builder().logNoSubscriberMessages(false).sendNoSubscriberEvent(false).installDefaultEventBus();
+        } catch (EventBusException e) {
+            eventBus = EventBus.getDefault();
+        }
+
+        eventBus.register(this);
+        startUsbService();
+    }
+
+    public void SendDataToUnity(USBDataReceiveEvent event) {
         UnityPlayer.UnitySendMessage("UnityActivity", "GetDataFromNative", event.getData());
     }
 
-    private void SaveDataToIntent(USBDataReceiveEvent event) {
-        currentActivity1.getIntent().putExtra("usb_data", event.getData());
-        currentActivity1.getIntent().putExtra("usb_raw_data", event.getRawData());
+    public void SaveDataToIntent(USBDataReceiveEvent event) {
+        currentUnityActivity.getIntent().putExtra("usb_data", event.getData());
+        currentUnityActivity.getIntent().putExtra("usb_raw_data", event.getRawData());
     }
 
     public void PrepareDeviceList() {
-        Log.d(TAG, "PrepareDeviceList 1");
+        Log.d(APP_TAG, "PrepareDeviceList");
         if (eventBus != null) {
-            Log.d(TAG, "PrepareDeviceList 2");
             eventBus.post(new PrepareDevicesListEvent());
         }
     }
 
     public void ShowMessage(String msg) {
-        Toast.makeText(currentActivity1, msg, Toast.LENGTH_LONG).show();
+        Toast.makeText(currentUnityActivity, msg, Toast.LENGTH_LONG).show();
     }
 
     public void ShowMessageWithTag(String msg) {
-        String appName = currentActivity1.getResources().getString(R.string.app_name);
+        String appName = currentUnityActivity.getResources().getString(R.string.app_name);
         String fullMessage = appName + ": " + msg;
-        Toast.makeText(currentActivity1, fullMessage, Toast.LENGTH_LONG).show();
+        Toast.makeText(currentUnityActivity, fullMessage, Toast.LENGTH_LONG).show();
     }
 
     public int Add(int a, int b) {
         return a + b;
     }
 
-    ///
+    /// public ///
+
+    /// Events from bus ///
 
     public void onEvent(USBDataReceiveEvent event) {
-        ShowMessage("Received data");
-
-        Log.d(TAG, "Received USBHIDTerminal: " + event.getBytesCount());
+        Log.d(APP_TAG, "OnEvent: USBHIDTerminal: " + event.getBytesCount());
         SendDataToUnity(event);
         SaveDataToIntent(event);
     }
 
     public void onEvent(LogMessageEvent event) {
+        Log.d(APP_TAG, "OnEvent: LogMessageEvent");
     }
 
     public void onEvent(ShowDevicesListEvent event) {
-        Log.d(TAG, "Received ShowDevicesListEvent");
+        Log.d(APP_TAG, "OnEvent: ShowDevicesListEvent");
         showListOfDevices(event.getCharSequenceArray());
     }
 
     public void onEvent(DeviceAttachedEvent event) {
-        ShowMessage("Device is attached");
+        Log.d(APP_TAG, "OnEvent: Device is attached");
+        ShowMessage("OnEvent: Device is attached");
     }
 
     public void onEvent(DeviceDetachedEvent event) {
-        ShowMessage("Device is detached");
+        Log.d(APP_TAG, "OnEvent: Device is detached");
+        ShowMessage("OnEvent: Device is detached");
     }
+
+    public void onEvent(ServiceStartEvent event) {
+        Log.d(APP_TAG, "OnEvent: ServiceStartEvent");
+        ShowMessage("OnEvent: ServiceStartEvent");
+    }
+
+    public void onEvent(ServiceDestroyEvent event) {
+        Log.d(APP_TAG, "OnEvent: ServiceDestroyEvent");
+        ShowMessage("OnEvent: ServiceDestroyEvent");
+    }
+
+    /// Events from bus ///
 }
