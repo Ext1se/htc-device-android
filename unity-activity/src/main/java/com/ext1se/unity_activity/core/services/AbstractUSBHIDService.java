@@ -51,7 +51,8 @@ public abstract class AbstractUSBHIDService extends Service {
     private IntentFilter filter;
     private PendingIntent mPermissionIntent;
 
-    private boolean sendedDataType;
+    //private boolean sendedDataType;
+    private boolean sendedDataType = true;
 
     protected EventBus eventBus = EventBus.getDefault();
 
@@ -96,7 +97,10 @@ public abstract class AbstractUSBHIDService extends Service {
 
         String action = intent.getAction();
         if (Consts.ACTION_USB_DATA_TYPE.equals(action)) {
-            sendedDataType = intent.getBooleanExtra(Consts.ACTION_USB_DATA_TYPE, false);
+            //sendedDataType = intent.getBooleanExtra(Consts.ACTION_USB_DATA_TYPE, false);
+
+            //TODO
+            sendedDataType = intent.getBooleanExtra(Consts.ACTION_USB_DATA_TYPE, true);
         }
         onCommand(intent, action, flags, startId);
 
