@@ -175,8 +175,8 @@ public class USBHIDService extends AbstractUSBHIDService {
     }
 
     @Override
-    public void onUSBDataSending(String data) {
-        mLog("Sending: " + data);
+    public void onUSBDataSending(byte[] data) {
+        mLog("Sending data lenght: " + data.length);
     }
 
     @Override

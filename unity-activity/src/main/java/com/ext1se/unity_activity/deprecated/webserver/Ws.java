@@ -48,7 +48,7 @@ public class Ws extends WebSocket {
 
     @Override
     protected void onMessage(WebSocketFrame messageFrame) {
-        EventBus.getDefault().post(new USBDataSendEvent(messageFrame.getTextPayload()));
+        //EventBus.getDefault().post(new USBDataSendEvent(messageFrame.getTextPayload()));
     }
 
     @Override

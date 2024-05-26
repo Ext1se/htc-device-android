@@ -7,6 +7,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -29,6 +30,7 @@ import com.unity3d.player.UnityPlayer;
 
 import de.greenrobot.event.EventBus;
 import de.greenrobot.event.EventBusException;
+import java.util.Base64;
 
 public class PluginActivity extends UnityPlayerActivity {
 
@@ -95,7 +97,9 @@ public class PluginActivity extends UnityPlayerActivity {
     }
 
     public void sendDataToUnity(USBDataReceiveEvent event) {
-        UnityPlayer.UnitySendMessage("UnityActivity", "GetDataFromNative", event.getData());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            UnityPlayer.UnitySendMessage("UnityActivity", "GetDataFromNative", Base64.getEncoder().encodeToString(event.getRawData())); //event.getRawData());
+        }
     }
 
     public void saveDataToIntent(USBDataReceiveEvent event) {
@@ -190,7 +194,8 @@ public class PluginActivity extends UnityPlayerActivity {
         }
     }
 
-    public void sendDataToDevice(String data){
+    //public void sendDataToDevice(String data){ eventBus.post(new USBDataSendEvent(data)); }
+    public void sendDataToDevice(byte[] data){
         eventBus.post(new USBDataSendEvent(data));
     }
 

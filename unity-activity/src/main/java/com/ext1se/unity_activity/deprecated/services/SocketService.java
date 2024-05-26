@@ -159,7 +159,7 @@ public class SocketService extends Service {
                         if (data == null) {
                             waitingForConnection();
                         } else {
-                            eventBus.post(new USBDataSendEvent(data));
+                            //eventBus.post(new USBDataSendEvent(data));
                         }
                     }
                 }
