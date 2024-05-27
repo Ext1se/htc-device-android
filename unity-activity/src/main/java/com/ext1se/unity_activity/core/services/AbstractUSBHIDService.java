@@ -201,17 +201,19 @@ public abstract class AbstractUSBHIDService extends Service {
 
     private void sendData(byte[] data)
     {
-        Log.d(TAG, "sendData 1 " + data);
+        Log.d(TAG, "sendData " + data);
 
         if (device != null && mUsbManager.hasPermission(device))
         {
+            Log.d(TAG, "sendData; device is not null!");
+
             // mLog(connection +"\n"+ device +"\n"+ request +"\n"+
             // packetSize);
-            for (UsbInterface intf : interfacesList)
+            for (UsbInterface usbInterface : interfacesList)
             {
-                for (int i = 0; i < intf.getEndpointCount(); i++)
+                for (int i = 0; i < usbInterface.getEndpointCount(); i++)
                 {
-                    UsbEndpoint endPointWrite = intf.getEndpoint(i);
+                    UsbEndpoint endPointWrite = usbInterface.getEndpoint(i);
                     if (UsbConstants.USB_DIR_OUT == endPointWrite.getDirection())
                     {
                         // Charset.forName("UTF-16")

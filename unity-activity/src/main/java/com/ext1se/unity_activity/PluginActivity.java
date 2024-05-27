@@ -30,6 +30,7 @@ import com.unity3d.player.UnityPlayer;
 
 import de.greenrobot.event.EventBus;
 import de.greenrobot.event.EventBusException;
+
 import java.util.Base64;
 
 public class PluginActivity extends UnityPlayerActivity {
@@ -178,7 +179,7 @@ public class PluginActivity extends UnityPlayerActivity {
     }
 
     //TODO: refactor select by PID and VID
-    public void selectHtcDevice(){
+    public void selectHtcDevice() {
         if (devices == null) {
             showMessage("Lit of devices = null");
             return;
@@ -187,15 +188,20 @@ public class PluginActivity extends UnityPlayerActivity {
         for (int i = 0; i < devices.length; i++) {
             CharSequence deviceName = devices[i];
             if (deviceName.toString().contains("VID:0xbb4")
-                    && deviceName.toString().contains("PID:0x350")){
+                    && deviceName.toString().contains("PID:0x350")) {
                 showMessage("Item is selected: " + i + "; " + deviceName);
                 eventBus.post(new SelectDeviceEvent(i));
             }
         }
     }
 
-    //public void sendDataToDevice(String data){ eventBus.post(new USBDataSendEvent(data)); }
-    public void sendDataToDevice(byte[] data){
+/*
+    public void sendStringDataToDevice(String data){
+        eventBus.post(new USBDataSendEvent(data));
+    }
+*/
+
+    public void sendDataToDevice(byte[] data) {
         eventBus.post(new USBDataSendEvent(data));
     }
 
