@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+   <!-- in hex: vendor id = 0x0bb4 and product id = 0x0350 -->
+
+   <usb-device vendor-id="2996" product-id="848" />
+
+</resources>
